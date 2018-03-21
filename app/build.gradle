@@ -1,0 +1,117 @@
+apply plugin: 'com.android.application'
+
+// 获取当前系统时间
+def releaseTime() {
+    return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("UTC"))
+}
+// 获取程序名称
+def getProductName(){
+    return "channelTest"
+}
+android {
+    signingConfigs {
+        release {
+            keyAlias 'fan'
+            keyPassword '123456'
+            storeFile file('/Users/fan/Desktop/mykeystore.jks')
+            storePassword '123456'
+        }
+    }
+    compileSdkVersion 26
+    def currentVersionCode = getVersionCode()
+    defaultConfig {
+        applicationId "com.jadegold.mymorechannel"
+        minSdkVersion 15
+        targetSdkVersion 26
+        versionCode currentVersionCode
+        versionName "1.0"
+        multiDexEnabled true
+        flavorDimensions "versionCode"
+        manifestPlaceholders = [UMENG_CHANNEL_VALUE: "example"]//默认渠道
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled true  //开启代码混淆
+            zipAlignEnabled true
+            shrinkResources true    // 移除无用的resource文件
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            android.applicationVariants.all { variant ->
+                variant.outputs.all {
+//                    outputFileName = "${variant.name}-${variant.versionName}.apk"
+                    if (variant.buildType.name.equals("release")) {
+                        outputFileName = getProductName() + "_v${defaultConfig.versionName}_${releaseTime()}_" + variant.productFlavors[0].name + '_release.apk'
+                    } else {
+                        outputFileName = getProductName() + "_v${defaultConfig.versionName}_${releaseTime()}_" + variant.productFlavors[0].name + 'debug.apk'
+                    }
+
+                }
+            }
+        }
+    }
+    //    getSigningProperties()
+//自动多渠道打包
+    productFlavors {
+        main{
+            applicationId "com.jadegold.mymorechannel"
+        }
+//        mytest{
+//            applicationId "mytest.com.jadegold.mymorechannel"
+//        }
+//        product{
+//            applicationId "product.com.jadegold.mymorechannel"
+//        }
+        xiaomi {
+            applicationId "xiaomi.com.jadegold.mymorechannel"
+//            manifestPlaceholders = [APP_NAME: "@string/app_name",
+//                                    APP_ICON: "@mipmap/ic_launcher"]
+        }
+        yingyongbao {
+            applicationId "yingyongbao.com.jadegold.mymorechannel"
+        }
+        baidu {
+            applicationId "baidu.com.jadegold.mymorechannel"
+        }
+    }
+    sourceSets {
+        //  baidu.res.srcDirs=['src/baidu/res'] //指定编译的目录
+        // baidu.java.srcDirs=['src/baidu/java'] //指定编译的目录
+
+    }
+    productFlavors.all {
+        flavor -> flavor.manifestPlaceholders = [UMENG_CHANNEL: name]
+    }
+}
+
+// 读取版本号
+def getVersionCode() {
+    def versionFile = file('version.properties')
+    if (versionFile.canRead()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionFile))
+        def versionCode = versionProps['VERSION_CODE'].toInteger()
+        def runTasks = gradle.startParameter.taskNames
+        if ('assembleRelease' in runTasks) {
+            versionProps['VERSION_CODE'] = (++versionCode).toString()
+            versionProps.store(versionFile.newWriter(), null)
+        }
+        return versionCode
+    } else {
+        throw new GradleException("Could not find version.properties!")
+    }
+}
+//repositories {
+//    flatDir { dirs 'libs' }
+//}
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    //    compile(name: 'mylibrary-release', ext: 'aar')
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.1'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+    implementation project(':mylibrary')
+
+}
